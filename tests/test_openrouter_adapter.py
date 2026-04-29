@@ -96,8 +96,8 @@ def test_request_payload_shape(qwen_adapter: OpenRouterAdapter, synthetic_clip_p
     assert user_msg["role"] == "user"
     blocks = user_msg["content"]
     assert blocks[0] == {"type": "text", "text": "prompt-text"}
-    image_block = next(b for b in blocks if b["type"] == "image_url")
-    url = image_block["image_url"]["url"]
+    video_block = next(b for b in blocks if b["type"] == "video_url")
+    url = video_block["video_url"]["url"]
     assert url.startswith("data:video/mp4;base64,")
     assert len(url) > len("data:video/mp4;base64,") + 100
 
@@ -114,6 +114,30 @@ def test_analyze_http_error_returns_result(
     assert result.error is not None
     assert result.summary == ""
     assert result.cost_usd == 0.0
+
+
+@respx.mock
+def test_falls_back_to_reasoning_when_content_null(
+    nemotron_adapter: OpenRouterAdapter, synthetic_clip_path: Path
+) -> None:
+    """Reasoning models stream chain-of-thought into `reasoning`; if content is
+    null (model ran out of tokens before finalizing), use reasoning instead."""
+    payload = {
+        "id": "x",
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": None, "reasoning": "thinking..."},
+                "finish_reason": "length",
+            }
+        ],
+        "usage": {"prompt_tokens": 1000, "completion_tokens": 4000},
+    }
+    respx.post(_URL).mock(return_value=httpx.Response(200, json=payload))
+    clip = _make_clip(synthetic_clip_path)
+    result = nemotron_adapter.analyze(clip, "prompt")
+    assert result.error is None
+    assert result.summary == "thinking..."
 
 
 @respx.mock

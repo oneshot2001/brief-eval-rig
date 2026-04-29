@@ -2,11 +2,20 @@
 
 One adapter class configurable for Qwen3.6 Flash and Nemotron 3 Nano Omni
 (``:free`` tier). Both models advertise native video support
-(modality: ``text+image+video->text``); the exact wire format for video is
-under-documented at OpenRouter, so this adapter sends the clip as a
-data URI in an ``image_url`` content block — the broadly-supported pattern
-across OpenAI-compatible endpoints. If a model rejects this shape we will
-add a frame-sampled fallback in a follow-up.
+(modality: ``text+image+video->text``).
+
+Wire format (verified 2026-04-29 against both Qwen3.6 Flash via Alibaba
+and Nemotron 3 Nano Omni via NVIDIA on OpenRouter): video goes in a
+``video_url`` content block with a ``data:video/mp4;base64,...`` data URI.
+The earlier ``image_url`` shape was rejected upstream with "image format is
+illegal" because Alibaba's image decoder ran on the video bytes.
+
+Some OpenRouter models (Nemotron 3 Nano Omni in particular) are reasoning
+models that emit their chain of thought into ``message.reasoning`` and only
+write the final answer to ``message.content`` once they finish reasoning.
+If the response stops on ``length`` mid-reasoning, ``content`` is ``null``;
+the adapter falls back to ``reasoning`` so the run still produces a usable
+summary.
 
 Costs are computed from response.usage.prompt_tokens and completion_tokens
 times the configured pricing constants.
@@ -102,7 +111,7 @@ class OpenRouterAdapter(VLMAdapter):
 
         content: list[dict[str, Any]] = [
             {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": {"url": data_uri}},
+            {"type": "video_url", "video_url": {"url": data_uri}},
         ]
 
         payload = {
@@ -123,6 +132,12 @@ class OpenRouterAdapter(VLMAdapter):
         choice = (response_json.get("choices") or [{}])[0]
         message = choice.get("message") or {}
         summary = (message.get("content") or "").strip()
+        if not summary:
+            # Reasoning models (e.g., Nemotron) emit the chain-of-thought into
+            # `reasoning` and only write the final answer into `content` once
+            # reasoning completes. If we ran out of tokens mid-reasoning, fall
+            # back so the run still has a usable summary.
+            summary = (message.get("reasoning") or "").strip()
 
         usage = response_json.get("usage") or {}
         input_tokens = int(usage.get("prompt_tokens", 0) or 0)

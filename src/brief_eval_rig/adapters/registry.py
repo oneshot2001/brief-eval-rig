@@ -55,12 +55,15 @@ def qwen3_6_flash() -> OpenRouterAdapter:
 
 
 def nemotron_cloud() -> OpenRouterAdapter:
+    # Reasoning model: needs headroom for chain-of-thought + final answer.
+    # Default 1024 left content=null after reasoning consumed all tokens.
     return OpenRouterAdapter(
         model_id="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         lineup_name="nemotron-3-nano-omni-cloud",
         lineage="nvidia",
         pricing=NEMOTRON_3_NANO_OMNI_FREE,
         supports_native_video=True,
+        max_output_tokens=4096,
     )
 
 
