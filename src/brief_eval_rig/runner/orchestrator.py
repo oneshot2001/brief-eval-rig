@@ -6,19 +6,24 @@ one JSON output file per adapter. Returns a SmokeReport with aggregate cost,
 latency, and any per-call errors.
 
 CLI invocation:
-    python -m brief_eval_rig.runner.orchestrator <clip_json_path>
+    python -m brief_eval_rig.runner.orchestrator <clip_json_path> \\
+        [--lineup {cloud,local,all}] [--ollama-url URL]
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel
 
 from brief_eval_rig.adapters.base import AnalysisResult, Clip, VLMAdapter
-from brief_eval_rig.adapters.registry import all_cloud_adapters
+from brief_eval_rig.adapters.registry import (
+    all_adapters,
+    all_cloud_adapters,
+    all_local_adapters,
+)
 from brief_eval_rig.corpus.loader import load_clip
 from brief_eval_rig.prompts.loader import (
     load_generic,
@@ -153,26 +158,45 @@ def _print_report(report: SmokeReport) -> None:
     print(f"\nOutputs written: {len(report.output_paths)} files")
 
 
+def _build_adapter_list(lineup: str, ollama_url: str | None) -> list[VLMAdapter]:
+    if lineup == "cloud":
+        return all_cloud_adapters()
+    if lineup == "local":
+        return all_local_adapters(ollama_url)
+    return all_adapters(ollama_url)
+
+
 def main(argv: list[str] | None = None) -> int:
-    args: list[str] = sys.argv[1:] if argv is None else argv
-    if len(args) != 1:
-        print(
-            "Usage: python -m brief_eval_rig.runner.orchestrator <clip_json_path>",
-            file=sys.stderr,
-        )
+    parser = argparse.ArgumentParser(
+        prog="brief_eval_rig.runner.orchestrator",
+        description="Run smoke test for one clip against the configured adapter lineup.",
+    )
+    parser.add_argument("clip_json", type=Path, help="Path to clip metadata JSON sidecar")
+    parser.add_argument(
+        "--lineup",
+        choices=("cloud", "local", "all"),
+        default="cloud",
+        help="Adapter lineup to run (default: cloud)",
+    )
+    parser.add_argument(
+        "--ollama-url",
+        type=str,
+        default=None,
+        help=(
+            "Base URL for Ollama (overrides default localhost:11434 and the "
+            "OLLAMA_BASE_URL env var). Only relevant for --lineup local|all."
+        ),
+    )
+    args = parser.parse_args(argv)
+
+    if not args.clip_json.is_file():
+        print(f"Clip JSON not found: {args.clip_json}", file=sys.stderr)
         return 2
-    clip_json = Path(args[0])
-    if not clip_json.is_file():
-        print(f"Clip JSON not found: {clip_json}", file=sys.stderr)
-        return 2
-    report = run_smoke(clip_json)
+
+    adapters = _build_adapter_list(args.lineup, args.ollama_url)
+    report = run_smoke(args.clip_json, adapters=adapters)
     _print_report(report)
     return 1 if report.errors else 0
-
-
-def _ignored_unused() -> Any:
-    """Exists so mypy doesn't warn on Any import for typing only."""
-    return None
 
 
 if __name__ == "__main__":

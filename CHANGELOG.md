@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-29
+
+Phase 2 — Local adapters via Ollama. Three local contenders (Qwen3.6 27B,
+Nemotron 3 Nano Omni, Gemma 4 26B A4B) now drive against the same one-clip
+smoke orchestrator as the cloud lineup, with the same spec-§9 output schema.
+
+### Added
+
+- `OllamaAdapter` (single class, three configurations via factory functions).
+  Frame-samples using Phase 1's sampler since Ollama's `/api/chat` API
+  accepts only images, not video. Reasoning fallback (`message.thinking`)
+  for Nemotron parallel to the OpenRouter cloud variant.
+- Three local-adapter factory functions plus `all_local_adapters()` and
+  `all_adapters()` registry helpers. Local factories accept an optional
+  `base_url` to point at a remote Ollama (Vast.ai or other).
+- Orchestrator CLI gained `--lineup {cloud,local,all}` and `--ollama-url`
+  flags. Default lineup remains `cloud` (Phase 1 behavior preserved).
+- Live integration test for the local lineup at `tests/live/test_smoke_local.py`,
+  marked `@pytest.mark.live`. Auto-skips if Ollama is unreachable.
+
+### Changed
+
+- Lineup contracted from nine to eight contenders. **Qwen3.5-VL 9B dropped**:
+  no Ollama tag is published for it as of 2026-04-29. Documented in README.
+
+### Notes
+
+- Local adapters cost `$0.00` per call by design. Vast.ai compute is amortized
+  at the operational layer rather than recorded in `AnalysisResult.cost_usd`.
+- Ollama does not require authentication; no API-key handling was added.
+- Vast.ai launch remains a manual operational step. Adapter code is location-
+  agnostic — same class drives `localhost:11434` or a remote IP.
+
 ## [0.2.0] - 2026-04-29
 
 Phase 1 — Cloud adapters + frame sampler. Five cloud contenders can now answer

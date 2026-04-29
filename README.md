@@ -1,6 +1,6 @@
 # Brief Eval Rig
 
-A reproducible evaluation framework that scores nine vision-language models on real
+A reproducible evaluation framework that scores eight vision-language models on real
 security video understanding tasks, producing a defensible public leaderboard.
 
 > **One sentence.** A test rig that tells us — and the industry — which VLM is actually
@@ -12,15 +12,15 @@ security video understanding tasks, producing a defensible public leaderboard.
 |---|---|---|
 | 0 | Bootstrap + foundation (scaffold, schema, loader) | done |
 | 1 | Cloud adapters + frame sampler | done |
-| 2 | Local adapters via Ollama | pending |
+| 2 | Local adapters via Ollama | done |
 | 3 | LLM-as-judge + spot-check tooling | pending |
 | 4 | Leaderboard generator | pending |
 | 5 | Full eval run + public report | pending |
 
-Phase 1 ships the five cloud-contender adapters (Claude Sonnet 4.6, Gemini 3.1 Pro
-Preview, Gemini 3 Flash Preview, Qwen3.6 Flash, Nemotron 3 Nano Omni cloud), the
-deterministic frame sampler used by Claude, the canonical prompt set, and a one-clip
-smoke-test orchestrator that writes spec-§9 JSON outputs.
+Phase 2 ships the three local Ollama-backed adapters (Qwen3.6 27B, Nemotron 3 Nano
+Omni, Gemma 4 26B A4B) plus a `--lineup {cloud,local,all}` orchestrator flag.
+Combined with Phase 1, the rig now drives all eight contenders against a single
+clip with one command.
 
 ## Quickstart
 
@@ -40,21 +40,32 @@ To run the live smoke test against all five cloud providers, fill in `.env` from
 
 ```bash
 pytest -m live
-# or, equivalently:
-python -m brief_eval_rig.runner.orchestrator corpus/sample/sample-001.json
+# or, equivalently, choose a lineup explicitly:
+python -m brief_eval_rig.runner.orchestrator corpus/sample/sample-001.json --lineup cloud
+python -m brief_eval_rig.runner.orchestrator corpus/sample/sample-001.json --lineup local
+python -m brief_eval_rig.runner.orchestrator corpus/sample/sample-001.json --lineup all
 ```
+
+For the `local` lineup, Ollama must be reachable. Default is `http://localhost:11434`;
+override via `--ollama-url http://<host>:11434` or `OLLAMA_BASE_URL` (useful for
+pointing at a remote Ollama instance such as Vast.ai). Models must already be pulled
+on the target host (`ollama pull qwen3.6:27b`, etc.).
 
 The orchestrator writes one JSON per adapter under `outputs/{clip_id}/{model}.json`
 and prints a per-adapter latency / cost / error summary at the end.
 
 ## Contender lineup
 
-Nine vision-language models across four lineages:
+Eight vision-language models across four lineages:
 
 - **Anthropic.** Claude Sonnet 4.6.
 - **Google.** Gemini 3.1 Pro Preview, Gemini 3 Flash Preview, Gemma 4 26B A4B (local).
-- **Alibaba (Qwen).** Qwen3.6 Flash, Qwen3.6 27B (cloud + local), Qwen3.5-VL 9B (local).
+- **Alibaba (Qwen).** Qwen3.6 Flash, Qwen3.6 27B (cloud + local).
 - **NVIDIA.** Nemotron 3 Nano Omni (cloud + local).
+
+Originally specced with Qwen3.5-VL 9B as a ninth entry; that tag is not published
+on Ollama as of 2026-04-29, so the local Qwen lineup is represented by the 27B
+variant alone.
 
 ## Methodology summary
 
