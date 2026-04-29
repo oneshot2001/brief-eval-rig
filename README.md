@@ -11,13 +11,16 @@ security video understanding tasks, producing a defensible public leaderboard.
 | Phase | Description | Status |
 |---|---|---|
 | 0 | Bootstrap + foundation (scaffold, schema, loader) | done |
-| 1 | Cloud adapters + frame sampler | pending |
+| 1 | Cloud adapters + frame sampler | done |
 | 2 | Local adapters via Ollama | pending |
 | 3 | LLM-as-judge + spot-check tooling | pending |
 | 4 | Leaderboard generator | pending |
 | 5 | Full eval run + public report | pending |
 
-Phase 0 ships the abstractions only. Concrete model adapters land in Phases 1 and 2.
+Phase 1 ships the five cloud-contender adapters (Claude Sonnet 4.6, Gemini 3.1 Pro
+Preview, Gemini 3 Flash Preview, Qwen3.6 Flash, Nemotron 3 Nano Omni cloud), the
+deterministic frame sampler used by Claude, the canonical prompt set, and a one-clip
+smoke-test orchestrator that writes spec-§9 JSON outputs.
 
 ## Quickstart
 
@@ -28,17 +31,27 @@ git clone https://github.com/oneshot2001/brief-eval-rig.git
 cd brief-eval-rig
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest
+pytest                                       # offline tests only
 python -m brief_eval_rig.corpus.loader corpus/sample
 ```
 
-The last command should print one row for clip `smp-001` from the sample corpus.
+To run the live smoke test against all five cloud providers, fill in `.env` from
+`.env.example`, drop a short real `.mp4` at `corpus/sample/sample-001.mp4`, then:
+
+```bash
+pytest -m live
+# or, equivalently:
+python -m brief_eval_rig.runner.orchestrator corpus/sample/sample-001.json
+```
+
+The orchestrator writes one JSON per adapter under `outputs/{clip_id}/{model}.json`
+and prints a per-adapter latency / cost / error summary at the end.
 
 ## Contender lineup
 
 Nine vision-language models across four lineages:
 
-- **Anthropic.** Claude Sonnet 4.7.
+- **Anthropic.** Claude Sonnet 4.6.
 - **Google.** Gemini 3.1 Pro Preview, Gemini 3 Flash Preview, Gemma 4 26B A4B (local).
 - **Alibaba (Qwen).** Qwen3.6 Flash, Qwen3.6 27B (cloud + local), Qwen3.5-VL 9B (local).
 - **NVIDIA.** Nemotron 3 Nano Omni (cloud + local).
@@ -61,7 +74,7 @@ Hallucination resistance carries the heaviest weight because legal-grade output 
 the differentiator for the downstream use case.
 
 Primary judge: Claude Opus 4.7. To eliminate self-preference bias, GPT-5 swaps in to
-grade Claude Sonnet 4.7 outputs. A 10% stratified random sample is human-spot-checked
+grade Claude Sonnet 4.6 outputs. A 10% stratified random sample is human-spot-checked
 to track inter-rater agreement.
 
 The full methodology document and leaderboard ship with the Phase 5 public report.
@@ -70,24 +83,21 @@ The full methodology document and leaderboard ship with the Phase 5 public repor
 
 ```
 brief-eval-rig/
-├── corpus/                  # Clip JSON sidecars (videos are gitignored)
-│   ├── retail/
-│   ├── commercial/
-│   ├── construction/
-│   ├── schools/
-│   ├── industrial/
-│   ├── residential/
-│   ├── edge_cases/
-│   ├── long_form/
-│   └── sample/              # Sample clip for smoke tests
+├── corpus/                     # Clip JSON sidecars (videos are gitignored)
+│   ├── retail/ commercial/ construction/ schools/ industrial/
+│   ├── residential/ edge_cases/ long_form/
+│   └── sample/                 # Sample clip for smoke tests
 ├── src/brief_eval_rig/
-│   ├── adapters/            # VLMAdapter ABC; concrete adapters land in Phase 1+
-│   ├── corpus/              # Pydantic schema + loader
-│   ├── prompts/             # Canonical prompts (Phase 1)
-│   ├── runner/              # Orchestrator + frame sampler (Phase 1)
-│   ├── scoring/             # LLM judge + spot-check (Phase 3)
-│   └── reporting/           # Leaderboard generator (Phase 4)
+│   ├── adapters/               # VLMAdapter ABC, ClaudeAdapter, GoogleAdapter,
+│   │                           # OpenRouterAdapter, registry, pricing
+│   ├── corpus/                 # Pydantic schema + loader
+│   ├── prompts/                # Three canonical prompt files + loader
+│   ├── runner/                 # Orchestrator, frame sampler, output writer
+│   ├── scoring/                # LLM judge + spot-check (Phase 3)
+│   └── reporting/              # Leaderboard generator (Phase 4)
 └── tests/
+    ├── live/                   # Real-API smoke test, opt-in via -m live
+    └── ...                     # Offline unit tests
 ```
 
 ## Hard rules
@@ -96,6 +106,8 @@ brief-eval-rig/
 - No clip ships without documented license or consent.
 - No API keys committed; `.env.example` shows placeholders only.
 - Identical canonical prompts across all contenders. No per-model prompt tuning.
+- Live tests require explicit `-m live` opt-in so default `pytest` never burns
+  API credits.
 - The leaderboard does not publish until inter-rater agreement (LLM judge vs.
   human spot-check) is documented.
 

@@ -12,6 +12,8 @@
     {"time": "0:04", "event": "subject enters frame"},
     {"time": "0:23", "event": "subject exits frame"}
   ],
+  "targeted_query": "Describe the person who appears in the clip and note when they enter and exit.",
+  "hallucination_trap": "What does the license plate of the red sedan say?",
   "difficulty": "medium",
   "source": "synthetic-placeholder",
   "license": "internal-test-only",

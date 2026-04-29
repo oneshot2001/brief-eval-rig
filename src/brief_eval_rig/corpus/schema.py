@@ -68,6 +68,8 @@ class ClipMetadata(BaseModel):
     ground_truth_objects: list[str]
     ground_truth_ocr: list[str]
     expected_temporal_events: list[TemporalEvent]
+    targeted_query: str
+    hallucination_trap: str
     difficulty: Difficulty
     source: str
     license: str
@@ -81,6 +83,13 @@ class ClipMetadata(BaseModel):
             raise ValueError(
                 f"clip_id {v!r} does not match required pattern '[a-z]{{2,3}}-\\d{{3,4}}'"
             )
+        return v
+
+    @field_validator("targeted_query", "hallucination_trap")
+    @classmethod
+    def _require_nonempty_query(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("targeted_query and hallucination_trap must be non-empty")
         return v
 
     @field_validator("minor_present")
