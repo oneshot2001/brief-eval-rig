@@ -1,0 +1,20 @@
+{
+  "clip_id": "smp-001",
+  "vertical": "retail",
+  "duration_seconds": 28.5,
+  "resolution": "1920x1080",
+  "framerate": 30,
+  "scenario_tag": "loitering",
+  "ground_truth_summary": "Sample clip for schema validation. No real footage attached.",
+  "ground_truth_objects": ["person"],
+  "ground_truth_ocr": [],
+  "expected_temporal_events": [
+    {"time": "0:04", "event": "subject enters frame"},
+    {"time": "0:23", "event": "subject exits frame"}
+  ],
+  "difficulty": "medium",
+  "source": "synthetic-placeholder",
+  "license": "internal-test-only",
+  "minor_present": false,
+  "consent_documented": true
+}
