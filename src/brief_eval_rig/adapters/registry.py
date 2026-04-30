@@ -84,7 +84,7 @@ def qwen3_6_27b_local(base_url: str | None = None) -> OllamaAdapter:
 def nemotron_local(base_url: str | None = None) -> OllamaAdapter:
     # Reasoning model — same headroom rationale as the cloud variant.
     return OllamaAdapter(
-        model_id="nemotron3",
+        model_id="nemotron3:33b",
         lineup_name="nemotron-3-nano-omni-local",
         lineage="nvidia",
         base_url=base_url,

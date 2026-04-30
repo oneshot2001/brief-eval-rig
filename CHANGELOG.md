@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-04-30
+
+Phase 2 live-smoke verification. End-to-end run against a real Vast.ai A100
+80GB instance (Montana host, $0.96/hr) confirmed all three local Ollama
+adapters round-trip Q6325-LE video frames to GGUF Q4_K_M models and produce
+non-error responses. Total smoke wall time 7m 06s.
+
+### Changed
+
+- **Nemotron tag corrected from `nemotron3` to `nemotron3:33b`** in the
+  Ollama adapter registry. The bare `nemotron3` had no `:latest` alias on
+  Ollama's registry; pulls failed with "manifest not found". The `:33b` tag
+  resolves to `family: nemotron_h_omni`, the multimodal Nano Omni variant
+  the spec wanted (33B params, 28 GB on disk).
+
+### Added
+
+- `scripts/smoke-local.sh` — paste-resistant wrapper for the local-lineup
+  smoke run. Sidesteps multi-line argument mangling when invoking the
+  orchestrator interactively.
+
+### Notes
+
+- Live-smoke output budget: ~$1 of Vast.ai compute end-to-end (instance
+  launch through model pulls through smoke through destroy).
+- **Known issue:** Gemma 4 26B generic-prompt response truncates at ~38
+  chars mid-word ("...consists of a 15-"). Other two prompts return short
+  but valid responses. Generation parameters (temperature, stop sequences,
+  EOS handling) need investigation — not max_output_tokens, which defaults
+  to 1024 and is far above the cutoff. Filed for a follow-up Vast session.
+- **Known issue (carried from Phase 1):** Google AI Studio API key for the
+  Gemini Project has expired. Both `gemini-3-1-pro-preview` and
+  `gemini-3-flash-preview` return `API_KEY_INVALID`. Renew before Phase 5.
+
 ## [0.3.0] - 2026-04-29
 
 Phase 2 — Local adapters via Ollama. Three local contenders (Qwen3.6 27B,
