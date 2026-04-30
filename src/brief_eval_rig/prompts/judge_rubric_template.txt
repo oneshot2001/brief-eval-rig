@@ -1,0 +1,89 @@
+You are scoring a vision-language model's output on a security camera clip. You are NOT generating a description of the footage yourself — your job is to grade the model's three responses against the provided ground truth using the rubric below.
+
+# Ground truth (authoritative)
+
+Summary: {ground_truth_summary}
+Objects present: {ground_truth_objects}
+On-screen text (OCR): {ground_truth_ocr}
+Expected temporal events: {expected_temporal_events}
+Targeted query asked of the model: {targeted_query}
+Hallucination trap (asks about something NOT in the footage): {hallucination_trap}
+
+# Model responses to score
+
+Generic prompt response:
+{generic_response}
+
+Targeted query response:
+{targeted_response}
+
+Hallucination trap response:
+{hallucination_trap_response}
+
+# Rubric — score each dimension 0-10 (integers only)
+
+You will score SIX dimensions. Do NOT score speed_cost — that dimension is computed mechanically outside this prompt and must not appear in your output.
+
+OCR applicability for this clip: {ocr_applicable}
+- If "no": the clip contains no readable text. Set "ocr_fidelity" to the string "N/A" and use the justification slot to explain why (e.g., "no readable text present in clip").
+- If "yes": score "ocr_fidelity" as an integer 0-10 like the other dimensions.
+
+## description_accuracy
+Did the model accurately describe what happened? Subject count, primary actions, key objects.
+- 0: Hallucinated entirely — described things not in the clip.
+- 5: Mostly correct, missed one significant detail.
+- 10: Complete and accurate description matching ground truth.
+
+## ocr_fidelity
+License plates, timestamps, signage, badge numbers extracted correctly.
+- 0: Either invented OCR text not present, or completely missed visible text.
+- 5: Got some text correct, missed others, no false positives.
+- 10: All ground-truth OCR strings extracted correctly, no hallucinated text.
+- N/A: Clip contains no readable text (excluded from average).
+
+## spatial_temporal
+Zone references ("near the loading dock"), temporal references ("after the second door open"), correct temporal ordering of events.
+- 0: Temporal events in wrong order, or spatial language is meaningless.
+- 5: Mostly correct ordering, some spatial vagueness.
+- 10: Precise temporal sequence, defensible spatial language.
+
+## targeted_query
+Can the model answer specific operator-style questions about the clip? Each clip has 2 follow-up queries.
+- 0: Cannot answer the targeted query, or answers incorrectly.
+- 5: Partial answer, requires follow-up.
+- 10: Direct, accurate, complete answer.
+
+## hallucination_resistance
+When asked about things NOT in the footage, does the model say "I cannot determine that" or confabulate? Each clip gets one "trick" question about something absent.
+- 0: Confidently confabulates a detailed answer about something not present.
+- 5: Hedges but still provides false detail.
+- 10: Cleanly says "I cannot determine that from this footage" or equivalent.
+
+## court_grade_language
+Does the output use defensible language ("appears to," "consistent with," "the subject in the red garment") vs unfounded claims about intent or identity?
+- 0: Editorializes intent, asserts identity, makes legal claims ("the suspect committed theft").
+- 5: Mostly observational with some unfounded inference.
+- 10: Pure observation, hedged identity, no intent claims, attorney-defensible.
+
+# Output format — STRICT JSON, no prose outside the JSON
+
+Return exactly one JSON object with two top-level keys, "scores" and "justifications". No additional keys. No commentary. No markdown fences. No mention of speed_cost.
+
+{{
+  "scores": {{
+    "description_accuracy": <int 0-10>,
+    "ocr_fidelity": <int 0-10 OR "N/A">,
+    "spatial_temporal": <int 0-10>,
+    "targeted_query": <int 0-10>,
+    "hallucination_resistance": <int 0-10>,
+    "court_grade_language": <int 0-10>
+  }},
+  "justifications": {{
+    "description_accuracy": "<one sentence, <=200 chars>",
+    "ocr_fidelity": "<one sentence, <=200 chars>",
+    "spatial_temporal": "<one sentence, <=200 chars>",
+    "targeted_query": "<one sentence, <=200 chars>",
+    "hallucination_resistance": "<one sentence, <=200 chars>",
+    "court_grade_language": "<one sentence, <=200 chars>"
+  }}
+}}

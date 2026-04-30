@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from brief_eval_rig.adapters.base import AnalysisResult, Clip, Deployment, Lineage, VLMAdapter
-from brief_eval_rig.runner.output_writer import write_result
+from brief_eval_rig.runner.output_writer import update_with_judge, write_result
+from brief_eval_rig.scoring.storage import DimensionScore, JudgeRun
 
 
 class _StubAdapter(VLMAdapter):
@@ -102,3 +103,98 @@ def test_write_result_pretty_printed(tmp_path: Path) -> None:
     raw = out.read_text()
     assert "\n  " in raw  # 2-space indent present
     assert raw.endswith("\n")
+
+
+_JUDGE_DIMS = (
+    "description_accuracy",
+    "ocr_fidelity",
+    "spatial_temporal",
+    "targeted_query",
+    "hallucination_resistance",
+    "court_grade_language",
+    "speed_cost",
+)
+
+
+def _seed_json(tmp_path: Path) -> Path:
+    adapter = _StubAdapter()
+    results = {
+        "generic": _result("g"),
+        "targeted": _result("t"),
+        "hallucination_trap": _result("h"),
+    }
+    return write_result(tmp_path, "smp-001", adapter, results)
+
+
+def _success_run(run_id: str = "rid-1") -> tuple[JudgeRun, list[DimensionScore]]:
+    run = JudgeRun(
+        judge_run_id=run_id,
+        clip_id="smp-001",
+        model="stub-adapter",
+        judge_model="gpt-5",
+        composite=7.42,
+        error=None,
+        judge_input_tokens=1234,
+        judge_output_tokens=567,
+        judge_cost_usd=0.0123,
+        raw_judge_response='{"ok": true}',
+        created_at="2026-04-30T18:00:00Z",
+    )
+    scores: list[DimensionScore] = []
+    for dim in _JUDGE_DIMS:
+        scores.append(
+            DimensionScore(
+                judge_run_id=run_id,
+                dimension=dim,  # type: ignore[arg-type]
+                score=8 if dim != "ocr_fidelity" else None,
+                justification=f"j-{dim}",
+            )
+        )
+    return run, scores
+
+
+def test_update_with_judge_round_trip(tmp_path: Path) -> None:
+    out = _seed_json(tmp_path)
+    pre = json.loads(out.read_text())
+    run, scores = _success_run()
+    update_with_judge(out, run, scores)
+    post = json.loads(out.read_text())
+
+    # Only the four target fields changed; everything else identical.
+    for key in (
+        "clip_id",
+        "model",
+        "lineage",
+        "deployment",
+        "prompts",
+        "human_spot_checked",
+        "human_spot_check_scores",
+        "spot_check_disagreements",
+    ):
+        assert post[key] == pre[key], f"untouched field {key!r} should match pre-state"
+
+    assert post["scores"] == {dim: (8 if dim != "ocr_fidelity" else None) for dim in _JUDGE_DIMS}
+    assert post["composite"] == 7.42
+    assert post["judge"] == "gpt-5"
+    assert post["judge_justifications"] == {dim: f"j-{dim}" for dim in _JUDGE_DIMS}
+
+
+def test_update_with_judge_error_leaves_scores_null(tmp_path: Path) -> None:
+    out = _seed_json(tmp_path)
+    run = JudgeRun(
+        judge_run_id="rid-err",
+        clip_id="smp-001",
+        model="stub-adapter",
+        judge_model="claude-opus-4-7",
+        composite=None,
+        error="judge response parse failure: invalid json",
+        created_at="2026-04-30T18:00:00Z",
+    )
+    update_with_judge(out, run, [])
+    post = json.loads(out.read_text())
+    assert post["scores"] is None
+    assert post["composite"] is None
+    assert post["judge"] is None
+    assert post["judge_justifications"] is None
+    # prompts must still be intact.
+    assert set(post["prompts"].keys()) == {"generic", "targeted", "hallucination_trap"}

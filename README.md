@@ -13,7 +13,7 @@ security video understanding tasks, producing a defensible public leaderboard.
 | 0 | Bootstrap + foundation (scaffold, schema, loader) | done |
 | 1 | Cloud adapters + frame sampler | done |
 | 2 | Local adapters via Ollama | done |
-| 3 | LLM-as-judge + spot-check tooling | pending |
+| 3 | LLM-as-judge + spot-check tooling | done |
 | 4 | Leaderboard generator | pending |
 | 5 | Full eval run + public report | pending |
 
@@ -53,6 +53,24 @@ on the target host (`ollama pull qwen3.6:27b`, etc.).
 
 The orchestrator writes one JSON per adapter under `outputs/{clip_id}/{model}.json`
 and prints a per-adapter latency / cost / error summary at the end.
+
+### Grading model outputs (Phase 3)
+
+Phase 3 fills the `scores` / `composite` / `judge` / `judge_justifications`
+fields left null by Phase 1–2. Requires both `ANTHROPIC_API_KEY` and
+`OPENAI_API_KEY` in `.env`. Results mirror to a SQLite database at
+`outputs/scores.db` alongside the per-clip JSONs.
+
+```bash
+# Run the LLM judge against the existing smoke clip
+python -m brief_eval_rig.scoring.judge outputs/smp-001/
+
+# Walk a 40-pair stratified spot-check sample (interactive)
+python -m brief_eval_rig.scoring.spot_check --sample 40
+
+# Compute Cohen's κ inter-rater agreement (judge vs human)
+python -m brief_eval_rig.scoring.agreement
+```
 
 ## Contender lineup
 

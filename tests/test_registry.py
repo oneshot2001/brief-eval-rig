@@ -36,7 +36,7 @@ def test_local_factories_instantiate() -> None:
 
 def test_local_factories_respect_base_url_argument() -> None:
     a = qwen3_6_27b_local(base_url="http://203.0.113.45:11434")
-    assert a._base_url == "http://203.0.113.45:11434"  # type: ignore[attr-defined]
+    assert a._base_url == "http://203.0.113.45:11434"
 
 
 def test_all_local_adapters_returns_three() -> None:

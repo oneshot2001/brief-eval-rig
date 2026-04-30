@@ -22,12 +22,13 @@ def valid_payload() -> dict[str, Any]:
     Tests freely mutate the returned dict; the fixture is recomputed per test
     so mutations don't bleed across tests.
     """
-    return json.loads(SAMPLE_JSON_PATH.read_text(encoding="utf-8"))
+    payload: dict[str, Any] = json.loads(SAMPLE_JSON_PATH.read_text(encoding="utf-8"))
+    return payload
 
 
 def _write_synthetic_clip(path: Path, *, frames: int = 30, fps: int = 10) -> None:
     """Write a tiny deterministic 320x240 color-gradient mp4 at the given path."""
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # type: ignore[attr-defined]
     writer = cv2.VideoWriter(str(path), fourcc, fps, (320, 240))
     if not writer.isOpened():
         raise RuntimeError("cv2.VideoWriter failed to open mp4v container")

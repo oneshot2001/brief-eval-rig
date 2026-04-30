@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-30
+
+Phase 3 — LLM-as-judge + spot-check tooling + inter-rater agreement + SQLite
+storage. The rig now grades any `outputs/{clip_id}/{model}.json` against
+ground truth across all seven dimensions (0–10) with structured-output JSON,
+mirrors results to SQLite, supports a 40-pair stratified human spot-check,
+and reports Cohen's κ between judge and human.
+
+### Added
+
+- LLM-as-judge orchestrator (`scoring/llm_judge.py`, `scoring/judge.py`).
+  Claude Opus 4.7 is the primary judge for seven of the eight contenders;
+  GPT-5 swaps in for `claude-sonnet-4-6` outputs to avoid self-lineage
+  grading (spec §13).
+- Anthropic prompt caching engaged on the rubric block via
+  `cache_control: {"type": "ephemeral"}`. Verified end-to-end through
+  `cache_creation_input_tokens` / `cache_read_input_tokens` parsing in the
+  live smoke tests.
+- Spot-check CLI (`scoring/spot_check.py`, `scoring/spot_check_cli.py`)
+  with stratified sampling — default 5 pairs per model × 8 models = 40 —
+  plus `--sample` / `--resume` / `--status` modes and session persistence
+  at `outputs/.spot_check_session.json`.
+- Cohen's κ inter-rater agreement calculator (`scoring/agreement.py`)
+  with a per-dimension Markdown report at `reports/inter_rater_agreement.md`.
+- SQLite results storage at `outputs/scores.db` — three tables
+  (`judge_runs`, `dimension_scores`, `spot_checks`) with foreign-key
+  cascade and idempotent overwrite by `(clip_id, model)`.
+- Rubric module (`scoring/rubric.py`) with the canonical seven-dimension
+  weight vector and the mechanical Speed/Cost sub-score; canonical judge
+  prompt template at `prompts/judge_rubric_template.txt` plus
+  `prompts/loader.py::load_judge_rubric`.
+- `runner/output_writer.py::update_with_judge` helper for in-place
+  mutation of the score-related fields without disturbing prompts/metadata.
+- `tests/live/test_smoke_judge.py` covering both judge routes
+  (Anthropic → GPT-5 swap and non-Anthropic → Opus). Auto-skips on
+  missing API keys or upstream prompt errors.
+
+### Changed
+
+- Spot-check stratification departs from the literal spec wording
+  ("≥1 per `(model × vertical)` cell"). With 8 models × 9 verticals = 72
+  cells and only 40 picks, the literal rule cannot fit — we stratify by
+  model first (5 picks per model) then round-robin across the verticals
+  each model has graded. Documented in
+  `program-eval-phase3.md` Pre-flight #6.
+- Cohen's κ implementation deviation: the spec called for
+  `scipy.stats.cohen_kappa_score`, but that symbol lives in scikit-learn,
+  not scipy. The κ formula was inlined in ~20 LOC using `numpy` directly,
+  avoiding a heavyweight ML dependency for a single function.
+- Pre-existing test hygiene: three mypy errors in `tests/conftest.py`
+  (Any-return on JSON load; missing `cv2.VideoWriter_fourcc` stub) and
+  `tests/test_registry.py` (unused `type: ignore`) cleaned up so
+  `mypy src/ tests/` is fully green.
+
+### Dependencies
+
+- **Added:** `openai>=1.50.0`, `numpy>=1.26`.
+- **Removed:** `scipy>=1.12`. It was specced for the κ calculator but the
+  intended symbol is in sklearn, not scipy. Inlining κ in numpy makes
+  scipy speculative; dropping it from the declared dependency list keeps
+  the install footprint honest.
+
+### Notes
+
+- GPT-5 calls use `max_completion_tokens` (not `max_tokens`, which the
+  newer chat-completions API rejects) plus `reasoning_effort="low"` so
+  reasoning tokens don't starve the visible JSON output. Default
+  `max_output_tokens` raised from 1500 → 4000 to give GPT-5 reasoning
+  room while still being a hard cap on Anthropic's side. Both routes
+  verified live against `outputs/smp-001/` model outputs.
+
 ## [0.3.1] - 2026-04-30
 
 Phase 2 live-smoke verification. End-to-end run against a real Vast.ai A100
