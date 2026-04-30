@@ -7,13 +7,18 @@ adapters are cheap to instantiate, so no caching.
 Phase 2 deliberately drops Qwen3.5-VL 9B from the lineup — that tag is not
 published on Ollama as of 2026-04-29. The Qwen lineage is still represented
 locally by Qwen3.6 27B.
+
+v0.4.1: both Gemini contenders route via OpenRouter rather than Google AI
+Studio direct. Same model weights, same prices (OpenRouter mirrors Google's
+list), but sidesteps Google's free-tier rate limits and the paid-tier
+gating on Gemini 3.1 Pro Preview. The GoogleAdapter module is retained on
+disk in case direct routing is needed later.
 """
 
 from __future__ import annotations
 
 from brief_eval_rig.adapters.base import VLMAdapter
 from brief_eval_rig.adapters.claude import ClaudeAdapter
-from brief_eval_rig.adapters.google import GoogleAdapter
 from brief_eval_rig.adapters.ollama import OllamaAdapter
 from brief_eval_rig.adapters.openrouter import OpenRouterAdapter
 from brief_eval_rig.adapters.pricing import (
@@ -33,19 +38,24 @@ def claude_sonnet_4_6() -> ClaudeAdapter:
     )
 
 
-def gemini_3_1_pro_preview() -> GoogleAdapter:
-    return GoogleAdapter(
-        model_id="gemini-3.1-pro-preview",
+def gemini_3_1_pro_preview() -> OpenRouterAdapter:
+    return OpenRouterAdapter(
+        model_id="google/gemini-3.1-pro-preview",
         lineup_name="gemini-3-1-pro-preview",
+        lineage="google",
         pricing=GEMINI_3_1_PRO_PREVIEW_TIER1,
+        supports_native_video=True,
+        max_output_tokens=2048,
     )
 
 
-def gemini_3_flash_preview() -> GoogleAdapter:
-    return GoogleAdapter(
-        model_id="gemini-3-flash-preview",
+def gemini_3_flash_preview() -> OpenRouterAdapter:
+    return OpenRouterAdapter(
+        model_id="google/gemini-3-flash-preview",
         lineup_name="gemini-3-flash-preview",
+        lineage="google",
         pricing=GEMINI_3_FLASH_PREVIEW,
+        supports_native_video=True,
     )
 
 

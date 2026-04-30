@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-04-30
+
+Patch — both Gemini contenders re-routed through OpenRouter (same model
+weights, same prices) to sidestep Google AI Studio's free-tier rate limits
+and the paid-tier gating on Gemini 3.1 Pro Preview. The lineup, lineage
+labels, and per-clip JSON output names are unchanged; only the underlying
+adapter changed from `GoogleAdapter` → `OpenRouterAdapter`.
+
+### Changed
+
+- `gemini_3_1_pro_preview()` and `gemini_3_flash_preview()` factories in
+  `adapters/registry.py` now return `OpenRouterAdapter` instances pointing
+  at `google/gemini-3.1-pro-preview` and `google/gemini-3-flash-preview`
+  respectively. Pricing constants (`GEMINI_3_1_PRO_PREVIEW_TIER1`,
+  `GEMINI_3_FLASH_PREVIEW`) are reused unchanged — OpenRouter mirrors
+  Google's published rates.
+- Gemini 3.1 Pro Preview gets `max_output_tokens=2048` (frontier reasoning-
+  capable model wants headroom). Flash stays at the OpenRouter default 1024.
+
+### Fixed
+
+- Both Gemini adapters previously returned `400 INVALID_ARGUMENT — API key
+  expired` on every call. Renewing the Google AI Studio key fixed Flash;
+  Pro Preview remained blocked by free-tier quota (`429 RESOURCE_EXHAUSTED`).
+  OpenRouter routing unblocks both without requiring a Google billing
+  upgrade.
+
+### Notes
+
+- `adapters/google.py` is retained on disk (not deleted) so direct
+  Google AI Studio routing can be revived if OpenRouter ever has an
+  outage. It is no longer wired into the registry.
+- `GOOGLE_AI_STUDIO_API_KEY` is no longer required for the cloud lineup.
+  The `.env.example` entry stays as documentation; runtime no longer
+  reads it unless someone manually instantiates `GoogleAdapter`.
+
 ## [0.4.0] - 2026-04-30
 
 Phase 3 — LLM-as-judge + spot-check tooling + inter-rater agreement + SQLite
