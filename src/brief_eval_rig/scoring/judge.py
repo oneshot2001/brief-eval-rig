@@ -70,7 +70,7 @@ def _is_clean(model_output: dict[str, Any]) -> bool:
 
 def _compute_lineup_minimums(clip_dir: Path) -> tuple[int, float]:
     min_latency: int | None = None
-    min_cost: float | None = None
+    costs: list[float] = []
     for p in sorted(clip_dir.iterdir()):
         if not (p.is_file() and p.suffix == ".json"):
             continue
@@ -88,13 +88,11 @@ def _compute_lineup_minimums(clip_dir: Path) -> tuple[int, float]:
         )
         if min_latency is None or latency < min_latency:
             min_latency = latency
-        if min_cost is None or cost < min_cost:
-            min_cost = cost
+        costs.append(cost)
     if min_latency is None:
         min_latency = 0
-    if min_cost is None:
-        min_cost = 0.0
-    return min_latency, min_cost
+    min_paid_cost = min((c for c in costs if c > 0.0), default=0.0)
+    return min_latency, min_paid_cost
 
 
 def _estimate_cost(lineage: str) -> float:
@@ -171,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
         clip_dir = json_path.parent
         if clip_dir not in lineup_cache:
             lineup_cache[clip_dir] = _compute_lineup_minimums(clip_dir)
-        min_latency, min_cost = lineup_cache[clip_dir]
+        min_latency, min_paid_cost = lineup_cache[clip_dir]
 
         if args.dry_run:
             est = _estimate_cost(str(model_output.get("lineage") or ""))
@@ -186,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
             clip_metadata=clip_meta,
             model_output=model_output,
             lineup_min_latency_ms=min_latency,
-            lineup_min_cost_usd=min_cost,
+            lineup_min_paid_cost_usd=min_paid_cost,
         )
         upsert_judge_run(conn, run, dimension_scores)
         update_with_judge(json_path, run, dimension_scores)

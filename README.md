@@ -14,7 +14,7 @@ security video understanding tasks, producing a defensible public leaderboard.
 | 1 | Cloud adapters + frame sampler | done |
 | 2 | Local adapters via Ollama | done |
 | 3 | LLM-as-judge + spot-check tooling | done |
-| 4 | Leaderboard generator | pending |
+| 4 | Leaderboard generator | done |
 | 5 | Full eval run + public report | pending |
 
 Phase 2 ships the three local Ollama-backed adapters (Qwen3.6 27B, Nemotron 3 Nano
@@ -71,6 +71,35 @@ python -m brief_eval_rig.scoring.spot_check --sample 40
 # Compute Cohen's κ inter-rater agreement (judge vs human)
 python -m brief_eval_rig.scoring.agreement
 ```
+
+### Generating the leaderboard (Phase 4)
+
+After grading at least one (clip, model) pair via `python -m brief_eval_rig.scoring.judge`,
+generate the canonical artifacts:
+
+```bash
+python -m brief_eval_rig.reporting.leaderboard
+```
+
+Writes three files:
+
+- `leaderboard.md` at repo root — overall ranking + per-dimension + per-vertical sub-tables. Committed to git as the public canonical artifact (spec §12).
+- `reports/{model}.md` for each model — strengths / weaknesses / per-vertical / per-clip detail. **Local-only (gitignored).**
+- `metrics.csv` at repo root — wide-format, drops cleanly into Sheets / Notion / Vercel charts.
+
+Flags:
+
+| Flag | Default | Notes |
+|------|---------|-------|
+| `--db` | `outputs/scores.db` | Phase 3 SQLite output. |
+| `--output-dir` | `.` | Where to write the three artifacts. |
+| `--corpus` | `corpus/` | Clip metadata sidecars. |
+| `--outputs` | `outputs/` | Per-clip JSON root (for fresh speed/cost calc). |
+| `--min-n` | `1` | Suppress dim/vertical cells with fewer than N graded pairs. Pass `5` for Phase 5. |
+| `--difficulty-weights` | `easy=0.5,medium=1.0,hard=1.5` | Override the difficulty-adjusted weights. |
+| `--kappa-avg` | none | Cite a κ value in the leaderboard header. Compute via `python -m brief_eval_rig.scoring.agreement`. |
+
+The composite formula and weights live in `scoring/rubric.py` (spec §6). Speed/cost is recomputed fresh from per-clip latency/cost data: free-tier (`cost_usd == 0.0`) always scores 10/10 on cost; paid models normalize against the paid lineup minimum.
 
 ## Contender lineup
 

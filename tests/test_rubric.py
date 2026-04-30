@@ -95,9 +95,54 @@ def test_speed_cost_free_local_model_max_cost_score() -> None:
     assert cost == 10.0
 
 
-def test_speed_cost_zero_lineup_min_with_positive_value_zero_score() -> None:
-    _, cost = compute_speed_cost(1000, 0.5, 1000, 0.0)
-    assert cost == 0.0
+def test_speed_cost_free_model_in_paid_lineup_max_score() -> None:
+    _, cost = compute_speed_cost(
+        latency_ms=1000,
+        cost_usd=0.0,
+        lineup_min_latency_ms=1000,
+        lineup_min_paid_cost_usd=0.001,
+    )
+    assert cost == 10.0
+
+
+def test_speed_cost_all_free_lineup_returns_max_score() -> None:
+    _, cost = compute_speed_cost(
+        latency_ms=1000,
+        cost_usd=0.0,
+        lineup_min_latency_ms=1000,
+        lineup_min_paid_cost_usd=0.0,
+    )
+    assert cost == 10.0
+
+
+def test_speed_cost_paid_normalized_against_paid_min() -> None:
+    _, cost = compute_speed_cost(
+        latency_ms=1000,
+        cost_usd=0.10,
+        lineup_min_latency_ms=1000,
+        lineup_min_paid_cost_usd=0.05,
+    )
+    assert cost == pytest.approx(5.0)
+
+
+def test_speed_cost_paid_at_paid_minimum() -> None:
+    _, cost = compute_speed_cost(
+        latency_ms=1000,
+        cost_usd=0.05,
+        lineup_min_latency_ms=1000,
+        lineup_min_paid_cost_usd=0.05,
+    )
+    assert cost == pytest.approx(10.0)
+
+
+def test_speed_cost_paid_well_above_min() -> None:
+    _, cost = compute_speed_cost(
+        latency_ms=1000,
+        cost_usd=1.00,
+        lineup_min_latency_ms=1000,
+        lineup_min_paid_cost_usd=0.05,
+    )
+    assert cost == pytest.approx(0.5)
 
 
 def test_load_judge_rubric_contains_dimensions_and_schema() -> None:

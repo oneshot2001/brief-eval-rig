@@ -150,7 +150,7 @@ def test_anthropic_lineage_routes_to_openai() -> None:
         clip_metadata=_clip(),
         model_output=_model_output(lineage="anthropic", model="claude-sonnet-4-6"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert route.called
     assert not other.called
@@ -172,7 +172,7 @@ def test_non_anthropic_lineage_routes_to_anthropic() -> None:
         clip_metadata=_clip(ocr=["EXIT"]),
         model_output=_model_output(lineage="qwen", model="qwen3-6-flash"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert route.called
     assert not other.called
@@ -190,7 +190,7 @@ def test_upstream_error_short_circuits() -> None:
         clip_metadata=_clip(),
         model_output=_model_output(lineage="qwen", error_kinds=["generic"]),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert not a_route.called
     assert not o_route.called
@@ -210,7 +210,7 @@ def test_malformed_json_response_records_error() -> None:
         clip_metadata=_clip(),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert run.error is not None
     assert "judge response parse failure" in run.error
@@ -230,7 +230,7 @@ def test_missing_dimension_key_is_parse_failure() -> None:
         clip_metadata=_clip(),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert run.error is not None
     assert "judge response parse failure" in run.error
@@ -249,7 +249,7 @@ def test_extra_dimension_key_is_parse_failure() -> None:
         clip_metadata=_clip(),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert run.error is not None
     assert "judge response parse failure" in run.error
@@ -266,7 +266,7 @@ def test_ocr_na_when_ground_truth_empty() -> None:
         clip_metadata=_clip(ocr=[]),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert run.error is None
     ocr_score = next(s for s in scores if s.dimension == "ocr_fidelity")
@@ -289,7 +289,7 @@ def test_anthropic_request_includes_cache_control() -> None:
         clip_metadata=_clip(ocr=["EXIT"]),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert len(captured) == 1
     body = captured[0]
@@ -309,7 +309,7 @@ def test_composite_matches_rubric() -> None:
         clip_metadata=_clip(ocr=["EXIT"]),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     score_map: dict[str, int | None] = {s.dimension: s.score for s in scores}
     expected = compute_composite(score_map)
@@ -328,7 +328,7 @@ def test_speed_cost_dimension_always_populated() -> None:
         clip_metadata=_clip(ocr=["EXIT"]),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=500,
-        lineup_min_cost_usd=0.015,
+        lineup_min_paid_cost_usd=0.015,
     )
     assert run.error is None
     sc = next(s for s in scores if s.dimension == "speed_cost")
@@ -355,7 +355,7 @@ def test_anthropic_cost_uses_cached_price() -> None:
         clip_metadata=_clip(ocr=["EXIT"]),
         model_output=_model_output(lineage="qwen"),
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.03,
+        lineup_min_paid_cost_usd=0.03,
     )
     assert run.error is None
     expected = 200 * (15.0 / 1_000_000) + 1000 * (1.50 / 1_000_000) + 100 * (75.0 / 1_000_000)

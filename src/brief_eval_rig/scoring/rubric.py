@@ -49,8 +49,16 @@ def compute_speed_cost(
     latency_ms: int,
     cost_usd: float,
     lineup_min_latency_ms: int,
-    lineup_min_cost_usd: float,
+    lineup_min_paid_cost_usd: float,
 ) -> tuple[float, float]:
+    # Free-tier handling: when cost_usd is 0 the model is the cheapest possible
+    # contender, so it gets the maximum cost_subscore regardless of the lineup
+    # composition. Paid models normalize against the minimum cost over the
+    # *paid* (cost > 0) contenders only — passing the unconditional lineup min
+    # would zero every paid model whenever a single free-tier contender is
+    # present (the v0.4.1 bug). The caller is responsible for filtering out
+    # free contenders when computing lineup_min_paid_cost_usd; if all
+    # contenders are free, the caller passes 0.0 and we still award 10.0.
     if latency_ms == 0:
         latency_subscore = 10.0
     elif lineup_min_latency_ms == 0:
@@ -58,11 +66,9 @@ def compute_speed_cost(
     else:
         latency_subscore = max(0.0, min(10.0, 10.0 * lineup_min_latency_ms / latency_ms))
 
-    if cost_usd == 0:
+    if cost_usd == 0 or lineup_min_paid_cost_usd == 0:
         cost_subscore = 10.0
-    elif lineup_min_cost_usd == 0:
-        cost_subscore = 0.0
     else:
-        cost_subscore = max(0.0, min(10.0, 10.0 * lineup_min_cost_usd / cost_usd))
+        cost_subscore = max(0.0, min(10.0, 10.0 * lineup_min_paid_cost_usd / cost_usd))
 
     return latency_subscore, cost_subscore

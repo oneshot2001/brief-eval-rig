@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-30
+
+Phase 4 — Leaderboard Generator. The rig now produces three canonical
+artifacts from `outputs/scores.db`: `leaderboard.md` (committed, public),
+per-model deep dives in `reports/` (local-only, gitignored), and a
+wide-format `metrics.csv` (committed) ready for Sheets / Notion / Vercel.
+
+### Added
+
+- `reporting/aggregator.py` — pulls `judge_runs` + `dimension_scores` from
+  SQLite, joins per-clip JSON latency/cost data, computes per-model
+  aggregates (overall composite, difficulty-adjusted composite, per-dim
+  means, per-vertical means, latency p50, cost total, n_spot_checked).
+- `reporting/leaderboard.py` — three pure render functions
+  (`render_leaderboard_md`, `render_per_model_report_md`,
+  `render_metrics_csv`) plus a CLI entry at
+  `python -m brief_eval_rig.reporting.leaderboard`.
+- CLI flags: `--db`, `--output-dir`, `--corpus`, `--outputs`, `--min-n`,
+  `--difficulty-weights`, `--kappa-avg`. Default `--min-n 1` is smoke-
+  friendly; pass `--min-n 5` for Phase 5 strictness.
+- Difficulty weights default: easy=0.5, medium=1.0, hard=1.5. Overridable
+  via `--difficulty-weights "easy=...,medium=...,hard=..."`.
+- Strengths/weaknesses sections in per-model reports are pure data-driven
+  (top-3 / bottom-3 by dimension mean). No LLM-generated prose.
+
+### Changed
+
+- `scoring/rubric.py::compute_speed_cost` parameter renamed
+  `lineup_min_cost_usd` → `lineup_min_paid_cost_usd`. New free-tier rule:
+  if `cost_usd == 0.0` the model gets `cost_subscore = 10.0` (free is the
+  cheapest possible); paid models normalize against the paid lineup
+  minimum, not the absolute minimum (which would be $0 whenever a free-
+  tier model is in the lineup). Fixes a Phase 3 finding where
+  nemotron-cloud at $0 forced every paid contender's cost subscore to 0.
+- `scoring/llm_judge.py::judge_pair` and `scoring/judge.py` CLI updated
+  to pass the paid-only minimum into `compute_speed_cost`.
+
+### Notes
+
+- The `outputs/smp-001/` 8-pair smoke dataset graded under v0.4.1 has
+  stale `speed_cost` values in the DB (computed under the old broken
+  rule). Phase 4's aggregator recomputes `speed_cost` fresh from per-clip
+  latency/cost data, so leaderboard output is correct without re-grading.
+  Re-running the judge would update the DB rows, but it's not required
+  for Phase 5; the leaderboard generator handles the asymmetry transparently.
+- `leaderboard.md` and `metrics.csv` are committed canonical artifacts
+  (spec §12). `reports/{model}.md` files are gitignored deep dives.
+- Pure offline phase: no new dependencies, no API calls.
+
 ## [0.4.1] - 2026-04-30
 
 Patch — both Gemini contenders re-routed through OpenRouter (same model

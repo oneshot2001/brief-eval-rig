@@ -45,7 +45,7 @@ def test_judge_smoke_anthropic_route(tmp_path: Path) -> None:
         clip_metadata=clip,
         model_output=model_output,
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.001,
+        lineup_min_paid_cost_usd=0.001,
     )
 
     assert run.error is None, f"unexpected judge error: {run.error}"
@@ -81,7 +81,7 @@ def test_judge_smoke_openai_route(tmp_path: Path) -> None:
         clip_metadata=clip,
         model_output=model_output,
         lineup_min_latency_ms=1000,
-        lineup_min_cost_usd=0.001,
+        lineup_min_paid_cost_usd=0.001,
     )
 
     assert run.error is None, f"unexpected judge error: {run.error}"

@@ -127,7 +127,7 @@ class _FakeJudge:
         clip_metadata: Any,
         model_output: dict[str, Any],
         lineup_min_latency_ms: int,
-        lineup_min_cost_usd: float,
+        lineup_min_paid_cost_usd: float,
     ) -> tuple[JudgeRun, list[DimensionScore]]:
         self.calls += 1
         clip_id = clip_metadata.clip_id

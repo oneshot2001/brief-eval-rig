@@ -1,0 +1,9 @@
+model,lineage,deployment,n_clips,n_with_errors,n_spot_checked,composite_overall,composite_difficulty_adjusted,dim_description_accuracy_mean,dim_ocr_fidelity_mean,dim_spatial_temporal_mean,dim_targeted_query_mean,dim_hallucination_resistance_mean,dim_court_grade_language_mean,dim_speed_cost_mean,vertical_retail_mean,vertical_commercial_mean,vertical_construction_mean,vertical_schools_mean,vertical_industrial_mean,vertical_residential_mean,vertical_edge_cases_mean,vertical_long_form_mean,latency_ms_p50,cost_usd_total
+gemini-3-flash-preview,google,cloud,1,0,0,6.2222,6.2222,2.0000,,3.0000,9.0000,10.0000,8.0000,10.0000,6.2222,,,,,,,,7422.0000,0.0039
+qwen3-6-flash,qwen,cloud,1,0,0,5.4444,5.4444,2.0000,,3.0000,8.0000,9.0000,8.0000,2.9293,5.4444,,,,,,,,20496.0000,0.0184
+nemotron-3-nano-omni-local,nvidia,local,1,0,0,4.3333,4.3333,1.0000,,2.0000,3.0000,10.0000,6.0000,5.6549,4.3333,,,,,,,,26519.0000,0.0000
+qwen3-6-27b-local,qwen,local,1,0,0,3.9444,3.9444,1.0000,,2.0000,2.0000,9.0000,6.0000,5.5099,3.9444,,,,,,,,38145.0000,0.0000
+gemma-4-26b-local,google,local,1,0,0,3.5000,3.5000,1.0000,,0.0000,0.0000,10.0000,6.0000,6.3459,3.5000,,,,,,,,23277.0000,0.0000
+claude-sonnet-4-6,anthropic,cloud,1,0,0,3.4444,3.4444,0.0000,,0.0000,0.0000,10.0000,10.0000,1.7593,3.4444,,,,,,,,15538.0000,0.1320
+gemini-3-1-pro-preview,google,cloud,1,0,0,3.4444,3.4444,0.0000,,2.0000,0.0000,10.0000,7.0000,2.3323,3.4444,,,,,,,,12173.0000,0.0406
+nemotron-3-nano-omni-cloud,nvidia,cloud,1,0,0,2.3333,2.3333,0.0000,,1.0000,0.0000,6.0000,4.0000,6.7142,2.3333,,,,,,,,18281.0000,0.0000

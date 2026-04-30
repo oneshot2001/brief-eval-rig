@@ -106,7 +106,7 @@ class LLMJudge:
         clip_metadata: ClipMetadata,
         model_output: dict[str, Any],
         lineup_min_latency_ms: int,
-        lineup_min_cost_usd: float,
+        lineup_min_paid_cost_usd: float,
     ) -> tuple[JudgeRun, list[DimensionScore]]:
         run_id = uuid.uuid4().hex
         created_at = datetime.now(UTC).isoformat()
@@ -214,7 +214,7 @@ class LLMJudge:
             latency_ms=latency_ms,
             cost_usd=cost_usd_total,
             lineup_min_latency_ms=lineup_min_latency_ms,
-            lineup_min_cost_usd=lineup_min_cost_usd,
+            lineup_min_paid_cost_usd=lineup_min_paid_cost_usd,
         )
         speed_cost_score = round((latency_sub + cost_sub) / 2.0)
 
@@ -248,7 +248,7 @@ class LLMJudge:
         speed_cost_justification = (
             f"latency_subscore={latency_sub:.2f}, cost_subscore={cost_sub:.2f} "
             f"(lineup_min_latency_ms={lineup_min_latency_ms}, "
-            f"lineup_min_cost_usd={lineup_min_cost_usd:.6f})"
+            f"lineup_min_paid_cost_usd={lineup_min_paid_cost_usd:.6f})"
         )
         dimension_scores.append(
             DimensionScore(
